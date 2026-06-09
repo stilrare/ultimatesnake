@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Snake</title>
+    <title>Arcade Neon Snake - Ultimate Edition</title>
     <style>
         body { 
             background: radial-gradient(circle, #1a1a2e 0%, #0f0f1b 100%); 
@@ -203,11 +203,11 @@
                 </li>
                 <li>
                     <span class="icon">🗺️</span>
-                    <span><strong>Brettet:</strong> Banen utvides frem til <span class="badge b-blue">Nivå 6</span>. Deretter forblir størrelsen låst, men farten øker!</span>
+                    <span><strong>Brettet:</strong> Banen utvides frem til <span class="badge b-blue">Nivå 6</span>. Deretter forblir størrelsen låst.</span>
                 </li>
                 <li>
                     <span class="icon">👾</span>
-                    <span><strong>Fiender:</strong> Hvert 3. nivå spawner en rød AI-slange. De fryser fast når du har Power-up!</span>
+                    <span><strong>Fiender:</strong> Maks <span class="badge b-red">2 fiender</span> vil spawne (på nivå 3 og 6). Fiende nr. 2 beholder en fast, normal hastighet.</span>
                 </li>
                 <li>
                     <span class="icon">💥</span>
@@ -232,13 +232,19 @@
 
         const grid = 23; 
         let lastPlayerUpdateTime = 0;
-        let lastEnemyUpdateTime = 0;
+        
+        // Eget uavhengig tidsstempel for hver enkelt fiende for å styre individuell fart
+        let lastEnemy1UpdateTime = 0;
+        let lastEnemy2UpdateTime = 0;
         
         let score = 0;
         let level = 1;
         
         let playerSpeed = 150; 
-        const getEnemySpeed = () => playerSpeed + 40;
+        
+        // Fartsfunksjoner
+        const getEnemy1Speed = () => playerSpeed + 40; // Blir raskere i takt med spilleren
+        const getEnemy2Speed = () => 190;             // Permanent fast, "normal" hastighet (startfart + 40)
 
         let highScore = 0;
         highScoreElement.innerText = highScore;
@@ -332,37 +338,34 @@
             });
         }
 
-        function updateEnemyAI() {
+        function moveSingleEnemy(enemy) {
             if (powerUpActive) return;
 
-            enemies.forEach(enemy => {
-                let dx = 0;
-                let dy = 0;
+            let dx = 0;
+            let dy = 0;
 
-                if (Math.abs(snake.x - enemy.x) > Math.abs(snake.y - enemy.y)) {
-                    dx = snake.x > enemy.x ? grid : -grid;
-                } else {
-                    dy = snake.y > enemy.y ? grid : -grid;
-                }
+            if (Math.abs(snake.x - enemy.x) > Math.abs(snake.y - enemy.y)) {
+                dx = snake.x > enemy.x ? grid : -grid;
+            } else {
+                dy = snake.y > enemy.y ? grid : -grid;
+            }
 
-                enemy.x += dx;
-                enemy.y += dy;
+            enemy.x += dx;
+            enemy.y += dy;
 
-                if (enemy.x < 0) enemy.x = 0;
-                if (enemy.x >= canvas.width) enemy.x = canvas.width - grid;
-                if (enemy.y < 0) enemy.y = 0;
-                if (enemy.y >= canvas.height) enemy.y = canvas.height - grid;
+            if (enemy.x < 0) enemy.x = 0;
+            if (enemy.x >= canvas.width) enemy.x = canvas.width - grid;
+            if (enemy.y < 0) enemy.y = 0;
+            if (enemy.y >= canvas.height) enemy.y = canvas.height - grid;
 
-                enemy.cells.unshift({ x: enemy.x, y: enemy.y });
-                if (enemy.cells.length > enemy.maxCells) { enemy.cells.pop(); }
-            });
+            enemy.cells.unshift({ x: enemy.x, y: enemy.y });
+            if (enemy.cells.length > enemy.maxCells) { enemy.cells.pop(); }
         }
 
         function updateLevel() {
             level++;
             levelElement.innerText = level;
 
-            // ENDRET: Banen utvides nå BARE hvis nivået er mindre enn eller lik 6
             if (level <= 6) {
                 canvas.width += grid * 2;
                 canvas.height += grid * 2;
@@ -370,7 +373,8 @@
 
             playerSpeed = Math.max(40, playerSpeed - 12);
 
-            if (level % 3 === 0) {
+            // ENDRET: Spawner bare en ny fiende hvis vi har færre enn 2 fiender fra før
+            if (level % 3 === 0 && enemies.length < 2) {
                 spawnEnemy();
                 warningText.innerText = `NY FIENDE SPAWNET! (Totalt: ${enemies.length})`;
                 setTimeout(() => { if(!powerUpActive) warningText.innerText = "PASS DEG FOR DE RØDE FIENDENE!"; }, 3000);
@@ -408,6 +412,7 @@
                 }
             }
 
+            // --- SPILLER-OPPDATERING ---
             if (timestamp - lastPlayerUpdateTime > playerSpeed) {
                 lastPlayerUpdateTime = timestamp;
 
@@ -478,11 +483,19 @@
                 });
             }
 
-            if (timestamp - lastEnemyUpdateTime > getEnemySpeed()) {
-                lastEnemyUpdateTime = timestamp;
-                updateEnemyAI();
+            // --- ENDRET: SEPARAT AI-OPPDATERING PER FIENDE ---
+            // Fiende 1 (Henter variabel/økende hastighet)
+            if (enemies[0] && timestamp - lastEnemy1UpdateTime > getEnemy1Speed()) {
+                lastEnemy1UpdateTime = timestamp;
+                moveSingleEnemy(enemies[0]);
+            }
+            // Fiende 2 (Henter fast, normal hastighet)
+            if (enemies[1] && timestamp - lastEnemy2UpdateTime > getEnemy2Speed()) {
+                lastEnemy2UpdateTime = timestamp;
+                moveSingleEnemy(enemies[1]);
             }
             
+            // --- TEGNING ---
             ctx.save();
             ctx.shadowBlur = 15; ctx.shadowColor = '#ff0055'; ctx.fillStyle = '#ff0055';
             ctx.beginPath();
