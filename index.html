@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Snake</title>
+    <style>
+        body { 
+            background: radial-gradient(circle, #1a1a2e 0%, #0f0f1b 100%); 
+            color: #fff; 
+            font-family: 'Courier New', Courier, monospace; 
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin: 0 0 20px 0;
+            letter-spacing: 4px;
+            color: #00f3ff;
+            text-shadow: 0 0 10px #00f3ff;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .main-layout {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 40px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .game-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #ui-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        .stat-box {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            font-size: 1.2rem;
+            min-width: 110px;
+            text-align: center;
+        }
+        #score { color: #ff0055; text-shadow: 0 0 10px #ff0055; font-weight: bold; }
+        #highScore { color: #00ff66; text-shadow: 0 0 10px #00ff66; font-weight: bold; }
+        #level { color: #ffcc00; text-shadow: 0 0 10px #ffcc00; font-weight: bold; }
+        
+        canvas { 
+            background: #05050a; 
+            display: block; 
+            border: 4px solid #00f3ff; 
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.4);
+            border-radius: 10px;
+            transition: width 0.5s ease, height 0.5s ease;
+            position: relative;
+        }
+
+        .shake-light { animation: shakeLightAnimate 0.15s linear infinite; }
+        .shake-heavy { animation: shakeHeavyAnimate 0.3s linear infinite; }
+
+        @keyframes shakeLightAnimate {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            20% { transform: translate(-1px, -1px) rotate(0deg); }
+            40% { transform: translate(-2px, 0px) rotate(0deg); }
+            60% { transform: translate(2px, 1px) rotate(0deg); }
+            80% { transform: translate(-1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -1px) rotate(0deg); }
+        }
+        @keyframes shakeHeavyAnimate {
+            0% { transform: translate(3px, 3px) rotate(0deg); }
+            20% { transform: translate(-3px, -3px) rotate(1deg); }
+            40% { transform: translate(-4px, 1px) rotate(-1deg); }
+            60% { transform: translate(4px, 3px) rotate(0deg); }
+            80% { transform: translate(-2px, 4px) rotate(1deg); }
+            100% { transform: translate(2px, -2px) rotate(-1deg); }
+        }
+
+        .warning {
+            margin-top: 15px;
+            color: #ff3333;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-shadow: 0 0 5px #ff0000;
+            height: 20px;
+            text-align: center;
+        }
+
+        .info-container {
+            max-width: 450px;
+            background: rgba(10, 10, 25, 0.85);
+            border: 2px solid #00f3ff;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: left;
+        }
+        .info-container h2 {
+            color: #00f3ff;
+            font-size: 1.4rem;
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 2px solid rgba(0, 243, 255, 0.3);
+            padding-bottom: 8px;
+            text-align: center;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px #00f3ff;
+        }
+        .info-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .info-list li {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 12px;
+            color: #e0e0e0;
+            display: flex;
+            align-items: flex-start;
+        }
+        .info-list li:last-child {
+            margin-bottom: 0;
+        }
+        .icon {
+            margin-right: 12px;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .badge {
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            display: inline-block;
+        }
+        .b-blue { color: #00f3ff; text-shadow: 0 0 5px #00f3ff; }
+        .b-red { color: #ff0055; text-shadow: 0 0 5px #ff0055; }
+        .b-yellow { color: #ffcc00; text-shadow: 0 0 5px #ffcc00; }
+        .b-green { color: #00ff66; text-shadow: 0 0 5px #00ff66; }
+
+        @media (max-width: 900px) {
+            .main-layout {
+                flex-direction: column;
+                align-items: center;
+            }
+            .info-container {
+                max-width: 100%;
+                width: 100%;
+                box-sizing: border-box;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>SNAKE 2.0</h1>
+    
+    <div class="main-layout">
+        <div class="game-section">
+            <div id="ui-container">
+                <div class="stat-box">SCORE: <span id="score">0</span></div>
+                <div class="stat-box">LEVEL: <span id="level">1</span></div>
+                <div class="stat-box">BEST: <span id="highScore">0</span></div>
+            </div>
+
+            <canvas id="gameCanvas" width="368" height="368"></canvas>
+            
+            <div class="warning" id="warningText">PASS DEG FOR DE RØDE FIENDENE!</div>
+        </div>
+
+        <div class="info-container">
+            <h2>HOW TO PLAY & INFO</h2>
+            <ul class="info-list">
+                <li>
+                    <span class="icon">🎮</span>
+                    <span><strong>Kontroller:</strong> Bruk <span class="badge b-blue">PILTASTENE</span> på tastaturet for å styre.</span>
+                </li>
+                <li>
+                    <span class="icon">🍎</span>
+                    <span><strong>Mål:</strong> Spis rosa celler for å få <span class="badge b-red">+10 poeng</span>.</span>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <span><strong>Power-Up:</strong> Spis den glødende <span class="badge b-yellow">GULLSTJERNEN</span> for å fryse alle fiender og få skjold i 5 sekunder!</span>
+                </li>
+                <li>
+                    <span class="icon">🗺️</span>
+                    <span><strong>Brettet:</strong> Banen utvides frem til <span class="badge b-blue">Nivå 6</span>. Deretter forblir størrelsen låst, men farten øker!</span>
+                </li>
+                <li>
+                    <span class="icon">👾</span>
+                    <span><strong>Fiender:</strong> Hvert 3. nivå spawner en rød AI-slange. De fryser fast når du har Power-up!</span>
+                </li>
+                <li>
+                    <span class="icon">💥</span>
+                    <span><strong>Juice:</strong> Spillet rister kraftig ved krash og når du tar stjerner.</span>
+                </li>
+                <li>
+                    <span class="icon">💀</span>
+                    <span><strong>Game Over:</strong> Krasj i vegger, deg selv eller fiender (unntatt under power-up) betyr tap!</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        
+        const scoreElement = document.getElementById("score");
+        const highScoreElement = document.getElementById("highScore");
+        const levelElement = document.getElementById("level");
+        const warningText = document.getElementById("warningText");
+
+        const grid = 23; 
+        let lastPlayerUpdateTime = 0;
+        let lastEnemyUpdateTime = 0;
+        
+        let score = 0;
+        let level = 1;
+        
+        let playerSpeed = 150; 
+        const getEnemySpeed = () => playerSpeed + 40;
+
+        let highScore = 0;
+        highScoreElement.innerText = highScore;
+
+        let snake = { x: 115, y: 115, dx: grid, dy: 0, cells: [], maxCells: 4 };
+        let apple = { x: 230, y: 230 };
+        let particles = [];
+        let enemies = [];
+
+        let powerUpActive = false;
+        let powerUpTimeLeft = 0;
+        let star = { x: -100, y: -100, active: false, timer: 0 };
+        let lastStarSpawnTime = 0;
+
+        function getRandomInt(min, max) { return Math.floor(Math.random() * (max - min)) + min; }
+        
+        function triggerScreenShake(intensity) {
+            canvas.classList.remove('shake-light', 'shake-heavy');
+            if (intensity === 'light') {
+                canvas.classList.add('shake-light');
+                setTimeout(() => canvas.classList.remove('shake-light'), 150);
+            } else if (intensity === 'heavy') {
+                canvas.classList.add('shake-heavy');
+                setTimeout(() => canvas.classList.remove('shake-heavy'), 300);
+            }
+        }
+
+        function generateApplePosition() {
+            let cols = canvas.width / grid;
+            let rows = canvas.height / grid;
+            apple.x = getRandomInt(0, cols) * grid;
+            apple.y = getRandomInt(0, rows) * grid;
+        }
+
+        function spawnStar() {
+            let cols = canvas.width / grid;
+            let rows = canvas.height / grid;
+            star.x = getRandomInt(0, cols) * grid;
+            star.y = getRandomInt(0, rows) * grid;
+            star.active = true;
+            star.timer = 7000; 
+        }
+
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 15; i++) {
+                particles.push({
+                    x: x + grid/2,
+                    y: y + grid/2,
+                    dx: (Math.random() - 0.5) * 6,
+                    dy: (Math.random() - 0.5) * 6,
+                    radius: Math.random() * 3 + 1,
+                    alpha: 1,
+                    color: color
+                });
+            }
+        }
+
+        function drawParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.dx; p.y += p.dy;
+                p.alpha -= 0.02;
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                } else {
+                    ctx.save();
+                    ctx.globalAlpha = p.alpha;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
+
+        function spawnEnemy() {
+            let spawnPoints = [
+                {x: 0, y: 0},
+                {x: canvas.width - grid, y: 0},
+                {x: 0, y: canvas.height - grid},
+                {x: canvas.width - grid, y: canvas.height - grid}
+            ];
+            let point = spawnPoints[getRandomInt(0, spawnPoints.length)];
+            
+            enemies.push({
+                x: point.x,
+                y: point.y,
+                cells: [{x: point.x, y: point.y}],
+                maxCells: 3
+            });
+        }
+
+        function updateEnemyAI() {
+            if (powerUpActive) return;
+
+            enemies.forEach(enemy => {
+                let dx = 0;
+                let dy = 0;
+
+                if (Math.abs(snake.x - enemy.x) > Math.abs(snake.y - enemy.y)) {
+                    dx = snake.x > enemy.x ? grid : -grid;
+                } else {
+                    dy = snake.y > enemy.y ? grid : -grid;
+                }
+
+                enemy.x += dx;
+                enemy.y += dy;
+
+                if (enemy.x < 0) enemy.x = 0;
+                if (enemy.x >= canvas.width) enemy.x = canvas.width - grid;
+                if (enemy.y < 0) enemy.y = 0;
+                if (enemy.y >= canvas.height) enemy.y = canvas.height - grid;
+
+                enemy.cells.unshift({ x: enemy.x, y: enemy.y });
+                if (enemy.cells.length > enemy.maxCells) { enemy.cells.pop(); }
+            });
+        }
+
+        function updateLevel() {
+            level++;
+            levelElement.innerText = level;
+
+            // ENDRET: Banen utvides nå BARE hvis nivået er mindre enn eller lik 6
+            if (level <= 6) {
+                canvas.width += grid * 2;
+                canvas.height += grid * 2;
+            }
+
+            playerSpeed = Math.max(40, playerSpeed - 12);
+
+            if (level % 3 === 0) {
+                spawnEnemy();
+                warningText.innerText = `NY FIENDE SPAWNET! (Totalt: ${enemies.length})`;
+                setTimeout(() => { if(!powerUpActive) warningText.innerText = "PASS DEG FOR DE RØDE FIENDENE!"; }, 3000);
+            }
+
+            generateApplePosition();
+        }
+
+        function gameLoop(timestamp) {
+            requestAnimationFrame(gameLoop);
+
+            ctx.fillStyle = '#05050a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            drawParticles();
+
+            if (!star.active && !powerUpActive && timestamp - lastStarSpawnTime > 15000) {
+                spawnStar();
+                lastStarSpawnTime = timestamp;
+            }
+
+            if (star.active) {
+                star.timer -= 16.66;
+                if (star.timer <= 0) {
+                    star.active = false;
+                }
+            }
+
+            if (powerUpActive) {
+                powerUpTimeLeft -= 16.66;
+                warningText.innerText = `⚡ SHIELD AKTIVT! (${Math.ceil(powerUpTimeLeft/1000)}s)`;
+                if (powerUpTimeLeft <= 0) {
+                    powerUpActive = false;
+                    warningText.innerText = "PASS DEG FOR DE RØDE FIENDENE!";
+                }
+            }
+
+            if (timestamp - lastPlayerUpdateTime > playerSpeed) {
+                lastPlayerUpdateTime = timestamp;
+
+                snake.x += snake.dx; 
+                snake.y += snake.dy;
+
+                if (snake.x < 0 || snake.x >= canvas.width || snake.y < 0 || snake.y >= canvas.height) {
+                    triggerScreenShake('heavy');
+                    gameOver();
+                }
+
+                snake.cells.unshift({ x: snake.x, y: snake.y });
+                if (snake.cells.length > snake.maxCells) { snake.cells.pop(); }
+
+                if (star.active && snake.x === star.x && snake.y === star.y) {
+                    star.active = false;
+                    powerUpActive = true;
+                    powerUpTimeLeft = 5000; 
+                    score += 20; 
+                    scoreElement.innerText = score;
+                    createParticles(star.x, star.y, '#ffcc00');
+                    triggerScreenShake('heavy');
+                    
+                    if (score % 30 === 0) updateLevel();
+                }
+
+                if (snake.x === apple.x && snake.y === apple.y) {
+                    snake.maxCells++;
+                    score += 10;
+                    scoreElement.innerText = score;
+                    
+                    createParticles(apple.x, apple.y, '#ff0055');
+                    triggerScreenShake('light');
+                    
+                    if (score % 30 === 0) {
+                        updateLevel();
+                    } else {
+                        generateApplePosition();
+                    }
+
+                    if (score > highScore) {
+                        highScore = score;
+                        highScoreElement.innerText = highScore;
+                    }
+                }
+
+                for (let i = 1; i < snake.cells.length; i++) {
+                    if (snake.x === snake.cells[i].x && snake.y === snake.cells[i].y) {
+                        triggerScreenShake('heavy');
+                        gameOver();
+                    }
+                }
+
+                enemies.forEach(enemy => {
+                    enemy.cells.forEach(cell => {
+                        if (snake.x === cell.x && snake.y === cell.y) {
+                            if (powerUpActive) {
+                                createParticles(cell.x, cell.y, '#00ffff');
+                                enemy.x = 0; enemy.y = 0; enemy.cells = [{x:0,y:0}];
+                                triggerScreenShake('light');
+                            } else {
+                                createParticles(snake.x, snake.y, '#ff0000');
+                                triggerScreenShake('heavy');
+                                gameOver();
+                            }
+                        }
+                    });
+                });
+            }
+
+            if (timestamp - lastEnemyUpdateTime > getEnemySpeed()) {
+                lastEnemyUpdateTime = timestamp;
+                updateEnemyAI();
+            }
+            
+            ctx.save();
+            ctx.shadowBlur = 15; ctx.shadowColor = '#ff0055'; ctx.fillStyle = '#ff0055';
+            ctx.beginPath();
+            ctx.arc(apple.x + grid/2, apple.y + grid/2, (grid/2) - 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            if (star.active) {
+                ctx.save();
+                ctx.shadowBlur = 20; 
+                ctx.shadowColor = '#ffcc00';
+                ctx.fillStyle = (Math.floor(timestamp / 100) % 2 === 0) ? '#ffffff' : '#ffcc00';
+                ctx.fillRect(star.x + 3, star.y + 3, grid - 6, grid - 6);
+                ctx.restore();
+            }
+
+            enemies.forEach(enemy => {
+                enemy.cells.forEach((cell, index) => {
+                    ctx.save();
+                    if (powerUpActive) {
+                        ctx.shadowBlur = 10; ctx.shadowColor = '#00f3ff';
+                        ctx.fillStyle = index === 0 ? '#b3f7ff' : '#00a8ff';
+                    } else {
+                        ctx.shadowBlur = index === 0 ? 15 : 5; ctx.shadowColor = '#ff0000';
+                        ctx.fillStyle = index === 0 ? '#ff5555' : '#aa0000';
+                    }
+                    ctx.fillRect(cell.x + 1, cell.y + 1, grid - 2, grid - 2);
+                    ctx.restore();
+                });
+            });
+
+            snake.cells.forEach(function (cell, index) {
+                ctx.save();
+                if (powerUpActive) {
+                    ctx.shadowBlur = 15; ctx.shadowColor = '#ffcc00';
+                    ctx.fillStyle = index === 0 ? '#ffffff' : '#ffcc00';
+                } else {
+                    if (index === 0) {
+                        ctx.shadowBlur = 15; ctx.shadowColor = '#00f3ff';
+                        ctx.fillStyle = '#ffffff';
+                    } else {
+                        ctx.fillStyle = '#00a8ff';
+                    }
+                }
+                ctx.fillRect(cell.x + 1, cell.y + 1, grid - 2, grid - 2);
+                ctx.restore();
+            });
+        }
+
+        function gameOver() {
+            score = 0;
+            level = 1;
+            playerSpeed = 150;
+            enemies = [];
+            powerUpActive = false;
+            star.active = false;
+            canvas.width = 368;  
+            canvas.height = 368;
+            scoreElement.innerText = score;
+            levelElement.innerText = level;
+            snake.x = 115; snake.y = 115;
+            snake.cells = []; snake.maxCells = 4;
+            snake.dx = grid; snake.dy = 0;
+            warningText.innerText = "PASS DEG FOR DE RØDE FIENDENE!";
+            generateApplePosition();
+        }
+
+        document.addEventListener('keydown', function (e) {
+            const forbiddenKeys = [32, 37, 38, 39, 40];
+            if (forbiddenKeys.includes(e.which)) {
+                e.preventDefault(); 
+            }
+
+            if (e.which === 37 && snake.dx === 0) { snake.dx = -grid; snake.dy = 0; }
+            else if (e.which === 38 && snake.dy === 0) { snake.dy = -grid; snake.dx = 0; }
+            else if (e.which === 39 && snake.dx === 0) { snake.dx = grid; snake.dy = 0; }
+            else if (e.which === 40 && snake.dy === 0) { snake.dy = grid; snake.dx = 0; }
+        });
+
+        generateApplePosition();
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
